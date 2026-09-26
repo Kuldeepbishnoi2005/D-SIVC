@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../constants/theme';
 import { Home, Award, User, Users, PlusCircle, LayoutDashboard } from 'lucide-react-native';
@@ -9,6 +9,7 @@ export interface NavItem {
   label: string;
   iconName: 'home' | 'credentials' | 'profile' | 'students' | 'issue' | 'dashboard';
   route: string;
+  onPress?: () => void;
 }
 
 interface FloatingNavBarProps {
@@ -23,17 +24,17 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({ items, activeKey
     switch (iconName) {
       case 'home':
       case 'dashboard':
-        return <Home size={18} color={color} />;
+        return <Home size={22} color={color} />;
       case 'credentials':
-        return <Award size={18} color={color} />;
+        return <Award size={22} color={color} />;
       case 'profile':
-        return <User size={18} color={color} />;
+        return <User size={22} color={color} />;
       case 'students':
-        return <Users size={18} color={color} />;
+        return <Users size={22} color={color} />;
       case 'issue':
-        return <PlusCircle size={18} color={color} />;
+        return <PlusCircle size={22} color={color} />;
       default:
-        return <LayoutDashboard size={18} color={color} />;
+        return <LayoutDashboard size={22} color={color} />;
     }
   };
 
@@ -43,17 +44,21 @@ export const FloatingNavBar: React.FC<FloatingNavBarProps> = ({ items, activeKey
         {items.map((item) => {
           const isActive = item.key === activeKey;
           const iconColor = isActive ? Colors.primary : Colors.textMuted;
-          const textColor = isActive ? Colors.text : Colors.textMuted;
 
           return (
             <TouchableOpacity
               key={item.key}
               style={[styles.navItem, isActive && styles.navItemActive]}
-              onPress={() => router.push(item.route as any)}
+              onPress={() => {
+                if (item.onPress) {
+                  item.onPress();
+                } else if (item.route && !item.route.startsWith('#')) {
+                  router.push(item.route as any);
+                }
+              }}
               activeOpacity={0.7}
             >
               {renderIcon(item.iconName, iconColor)}
-              <Text style={[styles.navText, { color: textColor }]}>{item.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -77,11 +82,11 @@ const styles = StyleSheet.create({
     borderColor: '#303535',
     borderWidth: 1,
     borderRadius: 9999,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 6,
     width: '100%',
     maxWidth: 420,
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
@@ -90,18 +95,13 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   navItem: {
-    flexDirection: 'row',
+    flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    justifyContent: 'center',
+    paddingVertical: 10,
     borderRadius: 9999,
-    gap: 6,
   },
   navItemActive: {
-    backgroundColor: '#202425',
-  },
-  navText: {
-    fontSize: 12,
-    fontWeight: '600',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
   },
 });
