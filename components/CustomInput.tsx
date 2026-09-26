@@ -3,14 +3,14 @@ import { View, Text, TextInput, StyleSheet, TextInputProps } from 'react-native'
 import { Colors } from '../constants/theme';
 
 interface CustomInputProps extends TextInputProps {
-  label: string;
+  label?: string;
   error?: string;
 }
 
 export const CustomInput: React.FC<CustomInputProps> = ({ label, error, ...props }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
         style={[styles.input, error ? styles.inputError : null]}
         placeholderTextColor={Colors.textMuted}

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Share, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Share, Modal, Linking } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { QRCodeView } from '../../components/QRCodeView';
 import { credentialService } from '../../services/credentialService';
+import { pdfService } from '../../services/pdfService';
 import { Credential } from '../../types';
 import { Colors } from '../../constants/theme';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -17,6 +18,7 @@ export default function StudentCredentialDetailScreen() {
   const [credential, setCredential] = useState<Credential | null>(null);
   const [loading, setLoading] = useState(true);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -55,6 +57,24 @@ export default function StudentCredentialDetailScreen() {
       });
     } catch (error) {
       console.error('Error sharing verification link:', error);
+    }
+  };
+
+  const handleViewPolygonScan = () => {
+    if (!credential?.blockchain_tx_hash) return;
+    const url = `https://amoy.polygonscan.com/tx/${credential.blockchain_tx_hash}`;
+    Linking.openURL(url);
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!credential) return;
+    setDownloading(true);
+    try {
+      await pdfService.generateCredentialPdf(credential, verifyUrl);
+    } catch (err) {
+      console.error('Failed to generate credential PDF:', err);
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -131,17 +151,35 @@ export default function StudentCredentialDetailScreen() {
         </View>
 
         {/* Action Buttons */}
-        <View style={styles.buttonRow}>
+        <View style={{ marginTop: 24 }}>
+          <View style={styles.buttonRow}>
+            <CustomButton
+              title="Show QR Code"
+              onPress={() => setShowQrModal(true)}
+              style={{ flex: 1, marginRight: 6 }}
+            />
+            <CustomButton
+              title="Share Link"
+              onPress={handleShareVerification}
+              variant="secondary"
+              style={{ flex: 1, marginLeft: 6 }}
+            />
+          </View>
+
+          {Boolean(credential.blockchain_tx_hash) && (
+            <CustomButton
+              title="View on PolygonScan"
+              onPress={handleViewPolygonScan}
+              variant="secondary"
+              style={{ width: '100%', marginTop: 12 }}
+            />
+          )}
+
           <CustomButton
-            title="Show QR Code"
-            onPress={() => setShowQrModal(true)}
-            style={{ flex: 1, marginRight: 8, marginTop: 24 }}
-          />
-          <CustomButton
-            title="Share Link"
-            onPress={handleShareVerification}
-            variant="secondary"
-            style={{ flex: 1, marginLeft: 8, marginTop: 24 }}
+            title={downloading ? "Generating PDF..." : "Download Credential"}
+            onPress={handleDownloadPdf}
+            disabled={downloading}
+            style={{ width: '100%', marginTop: 12 }}
           />
         </View>
       </View>

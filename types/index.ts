@@ -40,6 +40,7 @@ export interface Credential {
   issued_at: string;
   revoked_at: string | null;
   created_at: string;
+  student?: UserProfile;
 }
 
 export interface AuthState {

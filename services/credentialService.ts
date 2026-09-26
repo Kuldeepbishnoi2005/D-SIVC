@@ -25,16 +25,26 @@ export const credentialService = {
   },
 
   async getAllCredentials(): Promise<Credential[]> {
-    const { data, error } = await supabase
+    const { data: creds, error } = await supabase
       .from('credentials')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
+    if (error || !creds) {
       console.error('Error fetching all credentials:', error);
       return [];
     }
-    return (data as Credential[]) || [];
+
+    const { data: profiles } = await supabase.from('profiles').select('*');
+    const profileMap = new Map<string, UserProfile>();
+    if (profiles) {
+      profiles.forEach((p) => profileMap.set(p.id, p as UserProfile));
+    }
+
+    return creds.map((c) => ({
+      ...c,
+      student: profileMap.get(c.student_id),
+    })) as Credential[];
   },
 
   async getAllStudents(): Promise<UserProfile[]> {
