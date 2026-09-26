@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Share, Modal } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import QRCode from 'react-native-qrcode-svg';
+import { QRCodeView } from '../../components/QRCodeView';
 import { credentialService } from '../../services/credentialService';
 import { Credential } from '../../types';
 import { Colors } from '../../constants/theme';
@@ -159,10 +159,10 @@ export default function StudentCredentialDetailScreen() {
             <Text style={styles.modalTitle}>Credential Verification</Text>
 
             <View style={styles.qrContainer}>
-              <QRCode
+              <QRCodeView
                 value={verifyUrl}
                 size={180}
-                color={Colors.text}
+                color="#000000"
                 backgroundColor="#FFFFFF"
               />
             </View>
