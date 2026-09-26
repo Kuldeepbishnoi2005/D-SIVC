@@ -49,13 +49,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching profile:', error);
         setProfile(null);
       } else {
-        setProfile(data as Profile);
+        setProfile((data as Profile) || null);
       }
     } catch (err) {
       console.error('Unexpected error fetching profile:', err);
