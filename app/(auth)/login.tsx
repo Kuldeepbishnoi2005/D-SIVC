@@ -5,6 +5,7 @@ import { CustomInput } from '../../components/CustomInput';
 import { CustomButton } from '../../components/CustomButton';
 import { Colors } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
+import { ShieldCheck, ArrowRight, Search } from 'lucide-react-native';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -34,9 +35,16 @@ export default function LoginScreen() {
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
-        <Text style={styles.appTitle}>D-SIVC</Text>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Sign in to your student or admin portal</Text>
+        {/* Subtle Blockchain Identity Badge */}
+        <View style={styles.identityBadge}>
+          <ShieldCheck size={14} color={Colors.primary} />
+          <Text style={styles.identityBadgeText}>Polygon Amoy Anchored</Text>
+        </View>
+
+        <Text style={styles.brandTitle}>D-SIVC</Text>
+        <Text style={styles.brandSubtitle}>Decentralized Student Identity</Text>
+        
+        <Text style={styles.welcomeHeading}>Welcome back</Text>
       </View>
 
       <View style={styles.formCard}>
@@ -47,7 +55,7 @@ export default function LoginScreen() {
         ) : null}
 
         <CustomInput
-          label="Email Address"
+          label="Email"
           placeholder="student@college.edu"
           keyboardType="email-address"
           autoCapitalize="none"
@@ -67,21 +75,24 @@ export default function LoginScreen() {
           title="Sign In"
           onPress={handleLogin}
           loading={loading}
-          style={{ marginTop: 16 }}
+          style={{ marginTop: 20 }}
         />
 
         <View style={styles.footerRow}>
           <Text style={styles.footerText}>{"Don't have an account? "}</Text>
           <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-            <Text style={styles.linkText}>Register</Text>
+            <Text style={styles.linkText}>Create account</Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity 
-          style={styles.verifyLink}
+          style={styles.verifyBtn}
           onPress={() => router.push('/verify')}
+          activeOpacity={0.8}
         >
-          <Text style={styles.verifyLinkText}>🔍 Public Credential Verifier</Text>
+          <Search size={15} color={Colors.secondary} />
+          <Text style={styles.verifyBtnText}>Public Credential Verifier</Text>
+          <ArrowRight size={14} color={Colors.secondary} />
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -96,30 +107,50 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   header: {
-    marginBottom: 32,
+    marginBottom: 28,
     alignItems: 'center',
   },
-  appTitle: {
+  identityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.verifiedBg,
+    borderColor: 'rgba(101, 230, 163, 0.2)',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 9999,
+    gap: 6,
+    marginBottom: 16,
+  },
+  identityBadgeText: {
     color: Colors.primary,
-    fontSize: 18,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  brandTitle: {
+    color: Colors.text,
+    fontSize: 32,
     fontWeight: '800',
     letterSpacing: 2,
-    marginBottom: 8,
+    marginVertical: 2,
   },
-  title: {
-    fontSize: 28,
+  brandSubtitle: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 24,
+  },
+  welcomeHeading: {
+    fontSize: 22,
     fontWeight: '700',
     color: Colors.text,
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: Colors.textMuted,
   },
   formCard: {
     backgroundColor: Colors.card,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 24,
+    padding: 24,
     borderColor: Colors.cardBorder,
     borderWidth: 1,
   },
@@ -128,7 +159,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.revoked,
     borderWidth: 1,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 16,
   },
   errorCardText: {
@@ -149,14 +180,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  verifyLink: {
-    marginTop: 20,
+  verifyBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: Colors.cardBorder,
+    gap: 8,
   },
-  verifyLinkText: {
+  verifyBtnText: {
     color: Colors.secondary,
     fontSize: 14,
     fontWeight: '600',

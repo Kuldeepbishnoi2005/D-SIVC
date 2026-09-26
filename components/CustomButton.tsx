@@ -22,9 +22,9 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
   textStyle,
 }) => {
   const getBackgroundColor = () => {
-    if (disabled) return '#334155';
+    if (disabled) return '#202425';
     switch (variant) {
-      case 'secondary': return Colors.secondary;
+      case 'secondary': return Colors.cardSecondary;
       case 'outline': return 'transparent';
       case 'danger': return Colors.revoked;
       default: return Colors.primary;
@@ -32,9 +32,11 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
   };
 
   const getTextColor = () => {
-    if (disabled) return '#64748B';
-    if (variant === 'outline') return Colors.primary;
-    return Colors.text;
+    if (disabled) return Colors.textMuted;
+    if (variant === 'primary') return Colors.primaryText;
+    if (variant === 'outline') return Colors.text;
+    if (variant === 'secondary') return Colors.text;
+    return '#FFFFFF';
   };
 
   return (
@@ -43,6 +45,7 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
         styles.button,
         { backgroundColor: getBackgroundColor() },
         variant === 'outline' && styles.outlineBorder,
+        variant === 'secondary' && styles.secondaryBorder,
         style,
       ]}
       onPress={onPress}
@@ -60,19 +63,24 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    height: 50,
-    borderRadius: 12,
+    height: 52,
+    borderRadius: 9999,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginVertical: 8,
+    paddingHorizontal: 24,
+    marginVertical: 6,
   },
   outlineBorder: {
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+  },
+  secondaryBorder: {
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
   },
   text: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Share, Modal, Linking } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Share, Modal, Linking, TouchableOpacity } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { QRCodeView } from '../../components/QRCodeView';
 import { credentialService } from '../../services/credentialService';
 import { pdfService } from '../../services/pdfService';
@@ -8,12 +8,14 @@ import { Credential } from '../../types';
 import { Colors } from '../../constants/theme';
 import { StatusBadge } from '../../components/StatusBadge';
 import { CustomButton } from '../../components/CustomButton';
+import { CheckCircle2, AlertTriangle, ArrowLeft, ExternalLink, ShieldCheck } from 'lucide-react-native';
 
 const BASE_VERIFIER_URL =
   process.env.EXPO_PUBLIC_VERIFIER_URL ||
   (typeof window !== 'undefined' && window.location?.origin ? `${window.location.origin}/verify` : 'dsivc://verify');
 
 export default function StudentCredentialDetailScreen() {
+  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [credential, setCredential] = useState<Credential | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,97 +96,124 @@ export default function StudentCredentialDetailScreen() {
     );
   }
 
+  const isRevoked = credential.blockchain_status === 'REVOKED' || Boolean(credential.revoked_at);
+  const isAnchored = credential.blockchain_status === 'ANCHORED';
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Credential Card */}
-      <View style={styles.card}>
-        {/* Revoked Warning Banner */}
-        {(credential.blockchain_status === 'REVOKED' || credential.revoked_at) && (
-          <View style={styles.revokedBanner}>
-            <Text style={styles.revokedBannerTitle}>⚠️ CREDENTIAL REVOKED</Text>
-            <Text style={styles.revokedBannerText}>
-              This credential was revoked on {credential.revoked_at ? new Date(credential.revoked_at).toLocaleString() : 'Record Date'} by the issuing institution.
-            </Text>
+      {/* Top Header Navigation */}
+      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+        <ArrowLeft size={18} color={Colors.text} />
+        <Text style={styles.backBtnText}>Credential</Text>
+      </TouchableOpacity>
+
+      {/* Credential Header */}
+      <View style={styles.titleSection}>
+        <Text style={styles.credentialTitle}>{credential.credential_type}</Text>
+        <Text style={styles.credentialSubtitle}>
+          {credential.credential_data?.course || credential.credential_data?.department || 'Digital Verifiable Credential'}
+        </Text>
+      </View>
+
+      {/* Large Status Card (PARQ Style) */}
+      <View style={[styles.largeStatusCard, isRevoked && styles.largeStatusCardRevoked]}>
+        <View style={[styles.statusIconCircle, isRevoked ? styles.iconCircleRevoked : styles.iconCircleVerified]}>
+          {isRevoked ? (
+            <AlertTriangle size={28} color={Colors.revoked} />
+          ) : (
+            <CheckCircle2 size={32} color={Colors.primary} />
+          )}
+        </View>
+
+        <Text style={[styles.statusTitleText, isRevoked && { color: Colors.revoked }]}>
+          {isRevoked ? 'REVOKED' : isAnchored ? 'VERIFIED' : 'PENDING'}
+        </Text>
+
+        <Text style={styles.statusDescriptionText}>
+          {isRevoked
+            ? 'This credential has been revoked by the issuing authority.'
+            : isAnchored
+            ? 'Credential is authentic and blockchain anchored.'
+            : 'Credential is awaiting blockchain confirmation.'}
+        </Text>
+
+        <View style={styles.statusCardDivider} />
+
+        <Text style={styles.cardIdCode}>{displayId}</Text>
+        <Text style={styles.cardIssuedDate}>
+          Issued {new Date(credential.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </Text>
+      </View>
+
+      {/* Blockchain Details Section */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionHeaderLabel}>BLOCKCHAIN</Text>
+
+        <View style={styles.blockchainCard}>
+          <View style={styles.bcRow}>
+            <Text style={styles.bcLabel}>Network</Text>
+            <Text style={styles.bcValue}>Polygon Amoy Testnet</Text>
           </View>
-        )}
 
-        <View style={styles.headerRow}>
-          <Text style={styles.typeText}>{credential.credential_type}</Text>
-          <StatusBadge status={credential.blockchain_status === 'REVOKED' || credential.revoked_at ? 'REVOKED' : credential.blockchain_status} />
-        </View>
+          <View style={styles.bcRow}>
+            <Text style={styles.bcLabel}>Status</Text>
+            <StatusBadge status={isRevoked ? 'REVOKED' : credential.blockchain_status} />
+          </View>
 
-        <Text style={styles.idLabel}>Credential ID:</Text>
-        <Text style={styles.idText} selectable>{displayId}</Text>
-
-        <View style={styles.divider} />
-
-        {/* Cryptographic Proof Section */}
-        <Text style={styles.sectionHeading}>Cryptographic Proof & Blockchain Anchor</Text>
-        
-        <View style={styles.infoGroup}>
-          <Text style={styles.infoLabel}>SHA-256 Hash (Digest):</Text>
-          <Text style={styles.codeText} selectable>{credential.credential_hash}</Text>
-        </View>
-
-        <View style={styles.infoGroup}>
-          <Text style={styles.infoLabel}>Polygon Amoy Transaction Hash:</Text>
-          <Text style={styles.codeText} selectable>
-            {credential.blockchain_tx_hash || 'Pending On-Chain Anchoring'}
-          </Text>
-        </View>
-
-        <View style={styles.infoGroup}>
-          <Text style={styles.infoLabel}>Issued Timestamp:</Text>
-          <Text style={styles.infoValue}>
-            {new Date(credential.created_at).toLocaleString()}
-          </Text>
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* Off-Chain Verified Data */}
-        <Text style={styles.sectionHeading}>Off-Chain Credential Payload</Text>
-        <View style={styles.jsonBox}>
-          <Text style={styles.jsonText} selectable>
-            {JSON.stringify(credential.credential_data, null, 2)}
-          </Text>
-        </View>
-
-        {/* Action Buttons */}
-        <View style={{ marginTop: 24 }}>
-          <View style={styles.buttonRow}>
-            <CustomButton
-              title="Show QR Code"
-              onPress={() => setShowQrModal(true)}
-              style={{ flex: 1, marginRight: 6 }}
-            />
-            <CustomButton
-              title="Share Link"
-              onPress={handleShareVerification}
-              variant="secondary"
-              style={{ flex: 1, marginLeft: 6 }}
-            />
+          <View style={styles.bcRowColumn}>
+            <Text style={styles.bcLabel}>Transaction Hash</Text>
+            <Text style={styles.hashCodeText} selectable numberOfLines={1} ellipsizeMode="middle">
+              {credential.blockchain_tx_hash || 'Pending Anchoring'}
+            </Text>
           </View>
 
           {Boolean(credential.blockchain_tx_hash) && (
-            <CustomButton
-              title="View on PolygonScan"
-              onPress={handleViewPolygonScan}
-              variant="secondary"
-              style={{ width: '100%', marginTop: 12 }}
-            />
+            <TouchableOpacity style={styles.polygonScanLink} onPress={handleViewPolygonScan} activeOpacity={0.7}>
+              <Text style={styles.polygonScanText}>View on PolygonScan</Text>
+              <ExternalLink size={14} color={Colors.primary} />
+            </TouchableOpacity>
           )}
-
-          <CustomButton
-            title={downloading ? "Generating PDF..." : "Download Credential"}
-            onPress={handleDownloadPdf}
-            disabled={downloading}
-            style={{ width: '100%', marginTop: 12 }}
-          />
         </View>
       </View>
 
-      {/* QR Code Verification Modal */}
+      {/* Cryptographic Hash Details */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionHeaderLabel}>CRYPTOGRAPHY</Text>
+        <View style={styles.blockchainCard}>
+          <View style={styles.bcRowColumn}>
+            <Text style={styles.bcLabel}>SHA-256 Digest</Text>
+            <Text style={styles.hashCodeText} selectable numberOfLines={1} ellipsizeMode="middle">
+              {credential.credential_hash}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Actions */}
+      <View style={styles.actionsSection}>
+        {/* Primary Action: Show QR Code */}
+        <CustomButton
+          title="Show QR Code"
+          onPress={() => setShowQrModal(true)}
+          style={styles.primaryActionBtn}
+        />
+
+        {/* Secondary Actions */}
+        <CustomButton
+          title="Share Verification Link"
+          onPress={handleShareVerification}
+          variant="secondary"
+        />
+
+        <CustomButton
+          title={downloading ? "Generating PDF..." : "Download Credential"}
+          onPress={handleDownloadPdf}
+          disabled={downloading}
+          variant="secondary"
+        />
+      </View>
+
+      {/* QR Code Verification Modal (Screen 6) */}
       <Modal
         visible={showQrModal}
         transparent={true}
@@ -193,33 +222,40 @@ export default function StudentCredentialDetailScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalBrand}>D-SIVC</Text>
+            <View style={styles.modalBadge}>
+              <ShieldCheck size={14} color={Colors.primary} />
+              <Text style={styles.modalBadgeText}>D-SIVC Verification</Text>
+            </View>
+
             <Text style={styles.modalTitle}>Credential Verification</Text>
 
             <View style={styles.qrContainer}>
               <QRCodeView
                 value={verifyUrl}
-                size={180}
+                size={190}
                 color="#000000"
                 backgroundColor="#FFFFFF"
               />
             </View>
 
-            <Text style={styles.modalIdLabel}>Credential ID:</Text>
+            <Text style={styles.modalIdLabel}>Credential ID</Text>
             <Text style={styles.modalIdText} selectable>{displayId}</Text>
             <Text style={styles.modalSubtitle}>Scan to verify this credential</Text>
 
-            <CustomButton
-              title="Share Verification Link"
-              onPress={handleShareVerification}
-              variant="secondary"
-              style={{ width: '100%', marginBottom: 10 }}
-            />
-            <CustomButton
-              title="Close"
-              onPress={() => setShowQrModal(false)}
-              style={{ width: '100%' }}
-            />
+            <View style={styles.modalActions}>
+              <CustomButton
+                title="Share Verification Link"
+                onPress={handleShareVerification}
+                variant="secondary"
+                style={{ width: '100%' }}
+              />
+              <CustomButton
+                title="Close"
+                onPress={() => setShowQrModal(false)}
+                variant="outline"
+                style={{ width: '100%', marginTop: 8 }}
+              />
+            </View>
           </View>
         </View>
       </Modal>
@@ -234,6 +270,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
+    paddingBottom: 40,
   },
   loadingContainer: {
     flex: 1,
@@ -245,162 +282,216 @@ const styles = StyleSheet.create({
     color: Colors.revoked,
     textAlign: 'center',
     marginTop: 40,
-    fontSize: 16,
+    fontSize: 15,
   },
-  card: {
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  backBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  titleSection: {
+    marginBottom: 20,
+  },
+  credentialTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  credentialSubtitle: {
+    fontSize: 14,
+    color: Colors.textMuted,
+  },
+  largeStatusCard: {
     backgroundColor: Colors.card,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 28,
     borderColor: Colors.cardBorder,
     borderWidth: 1,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 24,
   },
-  revokedBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderColor: Colors.revoked,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
+  largeStatusCardRevoked: {
+    borderColor: 'rgba(255, 107, 107, 0.3)',
+    backgroundColor: 'rgba(255, 107, 107, 0.04)',
+  },
+  statusIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  iconCircleVerified: {
+    backgroundColor: Colors.verifiedBg,
+  },
+  iconCircleRevoked: {
+    backgroundColor: Colors.revokedBg,
+  },
+  statusTitleText: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: Colors.verified,
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  statusDescriptionText: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
     marginBottom: 16,
   },
-  revokedBannerTitle: {
-    color: Colors.revoked,
-    fontWeight: '700',
-    fontSize: 14,
+  statusCardDivider: {
+    height: 1,
+    width: '100%',
+    backgroundColor: Colors.cardBorder,
+    marginBottom: 16,
+  },
+  cardIdCode: {
+    fontSize: 13,
+    fontFamily: 'monospace',
+    color: Colors.textSecondary,
+    fontWeight: '600',
     marginBottom: 4,
   },
-  revokedBannerText: {
-    color: Colors.text,
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  typeText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.text,
-    flex: 1,
-  },
-  idLabel: {
+  cardIssuedDate: {
     fontSize: 12,
     color: Colors.textMuted,
   },
-  idText: {
+  sectionContainer: {
+    marginBottom: 20,
+  },
+  sectionHeaderLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.textMuted,
+    letterSpacing: 1.2,
+    marginBottom: 10,
+  },
+  blockchainCard: {
+    backgroundColor: Colors.cardSecondary,
+    borderRadius: 20,
+    borderColor: Colors.cardBorder,
+    borderWidth: 1,
+    padding: 16,
+    gap: 12,
+  },
+  bcRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  bcRowColumn: {
+    gap: 4,
+  },
+  bcLabel: {
     fontSize: 13,
-    color: Colors.textSecondary,
-    fontFamily: 'monospace',
-    marginBottom: 16,
+    color: Colors.textMuted,
   },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.cardBorder,
-    marginVertical: 16,
-  },
-  sectionHeading: {
-    fontSize: 16,
+  bcValue: {
+    fontSize: 13,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: 12,
   },
-  infoGroup: {
-    marginBottom: 12,
-  },
-  infoLabel: {
+  hashCodeText: {
     fontSize: 12,
-    color: Colors.textMuted,
-    marginBottom: 4,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: Colors.text,
-  },
-  codeText: {
-    fontSize: 12,
-    color: Colors.secondary,
     fontFamily: 'monospace',
-    backgroundColor: Colors.inputBg,
-    padding: 8,
-    borderRadius: 8,
-  },
-  jsonBox: {
-    backgroundColor: Colors.inputBg,
-    padding: 12,
-    borderRadius: 12,
-    borderColor: Colors.inputBorder,
-    borderWidth: 1,
-  },
-  jsonText: {
     color: Colors.textSecondary,
-    fontSize: 12,
-    fontFamily: 'monospace',
+    backgroundColor: Colors.inputBg,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
-  buttonRow: {
+  polygonScanLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    gap: 6,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: Colors.cardBorder,
+  },
+  polygonScanText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  actionsSection: {
+    gap: 10,
+    marginTop: 10,
+  },
+  primaryActionBtn: {
+    marginVertical: 4,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContent: {
     width: '100%',
-    maxWidth: 340,
+    maxWidth: 360,
     backgroundColor: Colors.card,
-    borderRadius: 24,
+    borderRadius: 28,
     padding: 24,
     alignItems: 'center',
     borderColor: Colors.cardBorder,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 10,
   },
-  modalBrand: {
-    fontSize: 14,
-    fontWeight: '800',
+  modalBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.verifiedBg,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 9999,
+    marginBottom: 12,
+  },
+  modalBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: Colors.primary,
-    letterSpacing: 1.5,
-    marginBottom: 4,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     color: Colors.text,
     marginBottom: 20,
-    textAlign: 'center',
   },
   qrContainer: {
     padding: 16,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 16,
   },
   modalIdLabel: {
     fontSize: 11,
     color: Colors.textMuted,
-    marginTop: 4,
   },
   modalIdText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: Colors.text,
     fontFamily: 'monospace',
-    marginBottom: 6,
+    marginVertical: 2,
   },
   modalSubtitle: {
     fontSize: 12,
-    color: Colors.textSecondary,
-    textAlign: 'center',
+    color: Colors.textMuted,
     marginBottom: 20,
+  },
+  modalActions: {
+    width: '100%',
   },
 });

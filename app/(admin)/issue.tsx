@@ -6,6 +6,7 @@ import { CustomButton } from '../../components/CustomButton';
 import { Colors } from '../../constants/theme';
 import { credentialService } from '../../services/credentialService';
 import { UserProfile } from '../../types';
+import { ArrowLeft } from 'lucide-react-native';
 
 export default function AdminIssueCredentialScreen() {
   const router = useRouter();
@@ -108,27 +109,33 @@ export default function AdminIssueCredentialScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.card}>
-        <Text style={styles.title}>Issue Verifiable Credential</Text>
-        <Text style={styles.subtitle}>
-          Generate a cryptographically hashed credential record on Supabase.
-        </Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      {/* Top Header Navigation */}
+      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+        <ArrowLeft size={18} color={Colors.text} />
+        <Text style={styles.backBtnText}>Dashboard</Text>
+      </TouchableOpacity>
 
-        {errorMsg ? (
-          <View style={styles.errorCard}>
-            <Text style={styles.errorCardText}>{errorMsg}</Text>
-          </View>
-        ) : null}
+      <Text style={styles.title}>Issue Credential</Text>
+      <Text style={styles.subtitle}>
+        Issue cryptographically verifiable credentials anchored to Polygon Amoy.
+      </Text>
 
-        {successMsg ? (
-          <View style={styles.successCard}>
-            <Text style={styles.successCardText}>{successMsg}</Text>
-          </View>
-        ) : null}
+      {errorMsg ? (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorCardText}>{errorMsg}</Text>
+        </View>
+      ) : null}
 
-        {/* Student Select List */}
-        <Text style={styles.inputLabel}>Select Target Student *</Text>
+      {successMsg ? (
+        <View style={styles.successCard}>
+          <Text style={styles.successCardText}>{successMsg}</Text>
+        </View>
+      ) : null}
+
+      <View style={styles.formCard}>
+        {/* Student Selection */}
+        <Text style={styles.inputLabel}>Select Student *</Text>
         {students.length === 0 ? (
           <Text style={styles.noStudentsText}>No registered student accounts available.</Text>
         ) : (
@@ -140,6 +147,7 @@ export default function AdminIssueCredentialScreen() {
                   key={student.id}
                   style={[styles.studentChip, isSelected && styles.studentChipSelected]}
                   onPress={() => setSelectedStudentId(student.id)}
+                  activeOpacity={0.7}
                 >
                   <Text style={[styles.studentChipText, isSelected && styles.studentChipTextSelected]}>
                     {student.full_name} ({student.roll_number || 'No Roll'})
@@ -151,7 +159,7 @@ export default function AdminIssueCredentialScreen() {
         )}
 
         <CustomInput
-          label="Credential Title / Degree Type *"
+          label="Credential Title *"
           placeholder="e.g. Bachelor of Technology in Computer Science"
           value={credentialType}
           onChangeText={setCredentialType}
@@ -188,7 +196,7 @@ export default function AdminIssueCredentialScreen() {
           title="Sign & Issue Credential"
           onPress={handleIssueCredential}
           loading={loading}
-          style={{ marginTop: 16 }}
+          style={{ marginTop: 12 }}
         />
       </View>
     </ScrollView>
@@ -197,19 +205,27 @@ export default function AdminIssueCredentialScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    flex: 1,
     backgroundColor: Colors.background,
   },
-  card: {
-    backgroundColor: Colors.card,
-    borderRadius: 20,
+  content: {
     padding: 20,
-    borderColor: Colors.cardBorder,
-    borderWidth: 1,
+    paddingBottom: 40,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  backBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.text,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 26,
+    fontWeight: '800',
     color: Colors.text,
     marginBottom: 4,
   },
@@ -218,24 +234,32 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     marginBottom: 20,
   },
+  formCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 24,
+    padding: 20,
+    borderColor: Colors.cardBorder,
+    borderWidth: 1,
+  },
   errorCard: {
     backgroundColor: Colors.revokedBg,
     borderColor: Colors.revoked,
     borderWidth: 1,
-    padding: 12,
-    borderRadius: 8,
+    padding: 14,
+    borderRadius: 16,
     marginBottom: 16,
   },
   errorCardText: {
-    color: Colors.text,
+    color: Colors.revoked,
     fontSize: 13,
+    fontWeight: '600',
   },
   successCard: {
     backgroundColor: Colors.verifiedBg,
     borderColor: Colors.verified,
     borderWidth: 1,
-    padding: 12,
-    borderRadius: 8,
+    padding: 14,
+    borderRadius: 16,
     marginBottom: 16,
   },
   successCardText: {
@@ -244,10 +268,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inputLabel: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-    fontWeight: '500',
+    color: Colors.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
     marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   noStudentsText: {
     color: Colors.textMuted,
@@ -259,12 +285,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   studentChip: {
-    backgroundColor: Colors.inputBg,
-    borderColor: Colors.inputBorder,
+    backgroundColor: Colors.cardSecondary,
+    borderColor: Colors.cardBorder,
     borderWidth: 1,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 9999,
     marginRight: 8,
   },
   studentChipSelected: {
@@ -272,13 +298,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   studentChipText: {
-    color: Colors.textSecondary,
+    color: Colors.textMuted,
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   studentChipTextSelected: {
-    color: '#FFF',
-    fontWeight: '700',
+    color: Colors.primaryText,
+    fontWeight: '800',
   },
   row: {
     flexDirection: 'row',

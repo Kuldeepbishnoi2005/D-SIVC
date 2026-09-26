@@ -10,6 +10,7 @@ interface RegisterData {
   rollNumber?: string;
   course?: string;
   department?: string;
+  institution?: string;
   role?: UserRole;
 }
 
@@ -117,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (data: RegisterData) => {
     setLoading(true);
-    const { fullName, email, password, rollNumber, course, department, role = 'student' } = data;
+    const { fullName, email, password, rollNumber, course, department, institution, role = 'student' } = data;
 
     const { data: authData, error } = await supabase.auth.signUp({
       email,
@@ -128,6 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           roll_number: rollNumber || null,
           course: course || null,
           department: department || null,
+          institution: institution || 'Academic Institution',
           role,
         },
       },

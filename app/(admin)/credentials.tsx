@@ -16,6 +16,8 @@ import { Credential } from '../../types';
 import { Colors } from '../../constants/theme';
 import { StatusBadge } from '../../components/StatusBadge';
 import { CustomInput } from '../../components/CustomInput';
+import { FloatingNavBar, NavItem } from '../../components/FloatingNavBar';
+import { Award } from 'lucide-react-native';
 
 const STATUS_FILTERS = ['ALL', 'ANCHORED', 'PENDING', 'FAILED', 'REVOKED'];
 const TYPE_FILTERS = ['ALL', 'Degree', 'Certificate', 'Internship', 'Achievement', 'Other'];
@@ -117,6 +119,13 @@ export default function AdminCredentialsScreen() {
     return true;
   });
 
+  const navItems: NavItem[] = [
+    { key: 'dashboard', label: 'Dashboard', iconName: 'dashboard', route: '/(admin)/dashboard' },
+    { key: 'students', label: 'Students', iconName: 'students', route: '/(admin)/students' },
+    { key: 'credentials', label: 'Credentials', iconName: 'credentials', route: '/(admin)/credentials' },
+    { key: 'profile', label: 'Profile', iconName: 'profile', route: '/(admin)/dashboard' },
+  ];
+
   const renderItem = ({ item }: { item: Credential }) => {
     const isRevoked = item.blockchain_status === 'REVOKED' || item.revoked_at !== null;
     const isRevokingThis = revokingId === item.id;
@@ -126,9 +135,9 @@ export default function AdminCredentialsScreen() {
     return (
       <View style={[styles.card, isRevoked && styles.cardRevoked]}>
         <View style={styles.cardHeader}>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, marginRight: 8 }}>
             <Text style={styles.studentName}>{studentName}</Text>
-            <Text style={styles.rollNumber}>Roll No: {rollNumber}</Text>
+            <Text style={styles.rollNumber}>Roll: {rollNumber}</Text>
             <Text style={styles.credentialType}>{item.credential_type}</Text>
             <Text style={styles.publicId} selectable>
               ID: {item.credential_id || item.id}
@@ -137,50 +146,28 @@ export default function AdminCredentialsScreen() {
           <StatusBadge status={isRevoked ? 'REVOKED' : item.blockchain_status} />
         </View>
 
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>SHA-256 Hash:</Text>
-          <Text style={styles.hashText} numberOfLines={1} ellipsizeMode="middle" selectable>
-            {item.credential_hash}
+        <View style={styles.cardFooter}>
+          <Text style={styles.issuedDateText}>
+            Issued {new Date(item.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
           </Text>
+
+          {!isRevoked ? (
+            <TouchableOpacity
+              style={[styles.revokePillBtn, isRevokingThis && styles.revokePillBtnDisabled]}
+              disabled={isRevokingThis}
+              onPress={() => handleRevoke(item)}
+              activeOpacity={0.8}
+            >
+              {isRevokingThis ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <Text style={styles.revokePillBtnText}>Revoke</Text>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.revokedTag}>Revoked</Text>
+          )}
         </View>
-
-        {item.blockchain_tx_hash && (
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Polygon Amoy Tx:</Text>
-            <Text style={styles.hashText} numberOfLines={1} ellipsizeMode="middle" selectable>
-              {item.blockchain_tx_hash}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Issued At:</Text>
-          <Text style={styles.infoValue}>
-            {new Date(item.created_at).toLocaleString()}
-          </Text>
-        </View>
-
-        {isRevoked && item.revoked_at && (
-          <View style={styles.revokedNotice}>
-            <Text style={styles.revokedNoticeText}>
-              Revoked on: {new Date(item.revoked_at).toLocaleString()}
-            </Text>
-          </View>
-        )}
-
-        {!isRevoked && (
-          <TouchableOpacity
-            style={[styles.revokeBtn, isRevokingThis && styles.revokeBtnDisabled]}
-            disabled={isRevokingThis}
-            onPress={() => handleRevoke(item)}
-          >
-            {isRevokingThis ? (
-              <ActivityIndicator size="small" color="#FFF" />
-            ) : (
-              <Text style={styles.revokeBtnText}>Revoke Credential</Text>
-            )}
-          </TouchableOpacity>
-        )}
       </View>
     );
   };
@@ -189,42 +176,51 @@ export default function AdminCredentialsScreen() {
     <View style={styles.container}>
       {/* Search & Filter Controls */}
       <View style={styles.filterSection}>
+        <Text style={styles.headerTitle}>Credentials</Text>
+        <Text style={styles.headerSubtitle}>Manage & revoke student credentials</Text>
+
         <CustomInput
-          placeholder="Search Name, Roll No, Credential ID, Email..."
+          placeholder="Search name, roll no, credential ID..."
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
 
         {/* Status Filter Pills */}
-        <Text style={styles.filterGroupLabel}>Status Filter:</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillContainer}>
-          {STATUS_FILTERS.map((s) => (
-            <TouchableOpacity
-              key={s}
-              style={[styles.pill, statusFilter === s && styles.pillActive]}
-              onPress={() => setStatusFilter(s)}
-            >
-              <Text style={[styles.pillText, statusFilter === s && styles.pillTextActive]}>
-                {s}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
+          {STATUS_FILTERS.map((s) => {
+            const isActive = statusFilter === s;
+            return (
+              <TouchableOpacity
+                key={s}
+                style={[styles.pill, isActive && styles.pillActive]}
+                onPress={() => setStatusFilter(s)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
+                  {s === 'ALL' ? 'All Status' : s[0] + s.slice(1).toLowerCase()}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
         {/* Type Filter Pills */}
-        <Text style={styles.filterGroupLabel}>Credential Type:</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillContainer}>
-          {TYPE_FILTERS.map((t) => (
-            <TouchableOpacity
-              key={t}
-              style={[styles.pill, typeFilter === t && styles.pillActive]}
-              onPress={() => setTypeFilter(t)}
-            >
-              <Text style={[styles.pillText, typeFilter === t && styles.pillTextActive]}>
-                {t}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
+          {TYPE_FILTERS.map((t) => {
+            const isActive = typeFilter === t;
+            return (
+              <TouchableOpacity
+                key={t}
+                style={[styles.pill, isActive && styles.pillActive]}
+                onPress={() => setTypeFilter(t)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
+                  {t === 'ALL' ? 'All Types' : t}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -239,16 +235,19 @@ export default function AdminCredentialsScreen() {
         ListEmptyComponent={
           !loading ? (
             <View style={styles.emptyContainer}>
+              <Award size={36} color={Colors.textMuted} style={{ marginBottom: 12 }} />
               <Text style={styles.emptyTitle}>No Matching Credentials</Text>
               <Text style={styles.emptyText}>
                 {searchQuery || statusFilter !== 'ALL' || typeFilter !== 'ALL'
-                  ? 'No credentials match your search and filter criteria.'
+                  ? 'No credentials match your filter criteria.'
                   : 'No credentials have been issued in the system yet.'}
               </Text>
             </View>
           ) : null
         }
       />
+
+      <FloatingNavBar items={navItems} activeKey="credentials" />
     </View>
   );
 }
@@ -262,25 +261,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.cardBorder,
   },
-  filterGroupLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: Colors.text,
+  },
+  headerSubtitle: {
+    fontSize: 13,
     color: Colors.textMuted,
-    marginTop: 8,
-    marginBottom: 6,
+    marginTop: 2,
+    marginBottom: 10,
   },
-  pillContainer: {
+  pillRow: {
     flexDirection: 'row',
-    marginBottom: 6,
+    marginVertical: 4,
   },
   pill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: Colors.card,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 9999,
+    backgroundColor: Colors.cardSecondary,
     borderColor: Colors.cardBorder,
     borderWidth: 1,
     marginRight: 8,
@@ -295,22 +296,24 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   pillTextActive: {
-    color: '#FFFFFF',
+    color: Colors.primaryText,
+    fontWeight: '700',
   },
   listContent: {
     padding: 20,
+    paddingBottom: 100,
   },
   card: {
     backgroundColor: Colors.card,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 24,
+    padding: 18,
     borderColor: Colors.cardBorder,
     borderWidth: 1,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   cardRevoked: {
-    borderColor: 'rgba(239, 68, 68, 0.4)',
-    backgroundColor: 'rgba(239, 68, 68, 0.03)',
+    borderColor: 'rgba(255, 107, 107, 0.3)',
+    backgroundColor: 'rgba(255, 107, 107, 0.04)',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -333,7 +336,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: Colors.textSecondary,
-    marginTop: 2,
+    marginTop: 4,
   },
   publicId: {
     fontSize: 11,
@@ -341,54 +344,37 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     marginTop: 2,
   },
-  infoRow: {
-    marginBottom: 6,
-  },
-  infoLabel: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    marginBottom: 2,
-  },
-  infoValue: {
-    fontSize: 12,
-    color: Colors.text,
-  },
-  hashText: {
-    fontSize: 11,
-    color: Colors.secondary,
-    fontFamily: 'monospace',
-    backgroundColor: Colors.inputBg,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  revokedNotice: {
-    marginTop: 8,
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.2)',
-  },
-  revokedNoticeText: {
-    color: Colors.revoked,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  revokeBtn: {
-    marginTop: 12,
-    backgroundColor: Colors.revoked,
-    paddingVertical: 10,
-    borderRadius: 10,
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.cardBorder,
   },
-  revokeBtnDisabled: {
+  issuedDateText: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  revokePillBtn: {
+    backgroundColor: Colors.revokedBg,
+    borderColor: Colors.revoked,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 9999,
+  },
+  revokePillBtnDisabled: {
     opacity: 0.6,
   },
-  revokeBtnText: {
-    color: '#FFF',
-    fontSize: 13,
+  revokePillBtnText: {
+    color: Colors.revoked,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  revokedTag: {
+    color: Colors.revoked,
+    fontSize: 12,
     fontWeight: '700',
   },
   emptyContainer: {
@@ -396,13 +382,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: Colors.text,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.textMuted,
     textAlign: 'center',
   },

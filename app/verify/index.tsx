@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, Linking, TouchableOpacity } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CustomInput } from '../../components/CustomInput';
 import { CustomButton } from '../../components/CustomButton';
 import { Colors } from '../../constants/theme';
 import { verificationService, VerificationResult } from '../../services/verificationService';
 import { StatusBadge } from '../../components/StatusBadge';
+import { ShieldCheck, CheckCircle2, AlertTriangle, ExternalLink, ArrowLeft } from 'lucide-react-native';
 
 export default function PublicVerifyScreen() {
+  const router = useRouter();
   const { credential } = useLocalSearchParams<{ credential?: string }>();
   const initialCred = typeof credential === 'string' ? credential.trim() : '';
 
@@ -51,27 +53,33 @@ export default function PublicVerifyScreen() {
     }
   }, [initialCred, executeVerification]);
 
-  const getTruthfulStatusText = (res: VerificationResult) => {
-    if (res.is_revoked) {
-      return 'Credential Revoked';
-    }
-    if (res.blockchain_status === 'ANCHORED') {
-      return 'Anchored & Verified on Blockchain';
-    }
-    return 'Database Record Found - Pending Blockchain Anchor';
+  const handleViewPolygonScan = () => {
+    if (!result?.blockchain_tx_hash) return;
+    const url = `https://amoy.polygonscan.com/tx/${result.blockchain_tx_hash}`;
+    Linking.openURL(url);
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.card}>
-        <View style={styles.header}>
-          <Text style={styles.icon}>🛡️</Text>
-          <Text style={styles.title}>Credential Authenticator</Text>
-          <Text style={styles.subtitle}>
-            Enter a student Credential ID or SHA-256 Hash to verify its authenticity and cryptographic proof against the registry.
-          </Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      {/* Navigation header if router can go back */}
+      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+        <ArrowLeft size={18} color={Colors.text} />
+        <Text style={styles.backBtnText}>Back</Text>
+      </TouchableOpacity>
+
+      <View style={styles.header}>
+        <View style={styles.badge}>
+          <ShieldCheck size={14} color={Colors.primary} />
+          <Text style={styles.badgeText}>D-SIVC Public Verifier</Text>
         </View>
 
+        <Text style={styles.title}>Credential Authenticator</Text>
+        <Text style={styles.subtitle}>
+          Verify the authenticity and on-chain status of any D-SIVC verifiable credential.
+        </Text>
+      </View>
+
+      <View style={styles.searchCard}>
         {errorMsg ? (
           <View style={styles.errorCard}>
             <Text style={styles.errorCardText}>{errorMsg}</Text>
@@ -79,8 +87,8 @@ export default function PublicVerifyScreen() {
         ) : null}
 
         <CustomInput
-          label="Credential ID or Hash *"
-          placeholder="e.g. DSIVC-1710000000-123 or 0x8a9b..."
+          label="Credential ID or Hash"
+          placeholder="e.g. DSIVC-1790382448286-428"
           value={query}
           onChangeText={setQuery}
           autoCapitalize="none"
@@ -92,116 +100,152 @@ export default function PublicVerifyScreen() {
           loading={loading}
           style={{ marginTop: 8 }}
         />
+      </View>
 
-        {searched && (
-          <View style={styles.resultBox}>
-            {result ? (
-              <View style={styles.resultCard}>
-                <View style={styles.badgeRow}>
-                  <Text style={styles.resultTitle}>{result.credential_type}</Text>
-                  <StatusBadge status={result.blockchain_status} />
+      {searched && (
+        <View style={styles.resultBox}>
+          {result ? (
+            <View style={[styles.resultCard, result.is_revoked && styles.resultCardRevoked]}>
+              <View style={styles.cardTopRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.credentialTitle}>{result.credential_type}</Text>
+                  <Text style={styles.studentName}>{result.credential_data?.student_name || 'N/A'}</Text>
                 </View>
+                <StatusBadge status={result.is_revoked ? 'REVOKED' : result.blockchain_status} />
+              </View>
 
-                <View
+              {/* Status Banner */}
+              <View
+                style={[
+                  styles.statusBanner,
+                  result.is_revoked
+                    ? styles.statusBannerRevoked
+                    : result.blockchain_status === 'ANCHORED'
+                    ? styles.statusBannerVerified
+                    : styles.statusBannerPending,
+                ]}
+              >
+                {result.is_revoked ? (
+                  <AlertTriangle size={16} color={Colors.revoked} />
+                ) : (
+                  <CheckCircle2 size={16} color={Colors.verified} />
+                )}
+                <Text
                   style={[
-                    styles.validityBanner,
+                    styles.statusBannerText,
                     result.is_revoked
-                      ? styles.revokedBanner
+                      ? { color: Colors.revoked }
                       : result.blockchain_status === 'ANCHORED'
-                      ? styles.verifiedBanner
-                      : styles.pendingBanner,
+                      ? { color: Colors.verified }
+                      : { color: Colors.pending },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.validityText,
-                      result.is_revoked
-                        ? styles.revokedText
-                        : result.blockchain_status === 'ANCHORED'
-                        ? styles.verifiedText
-                        : styles.pendingText,
-                    ]}
-                  >
-                    {getTruthfulStatusText(result)}
-                  </Text>
-                </View>
-
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Credential ID:</Text>
-                  <Text style={styles.infoValue}>{result.credential_id}</Text>
-                </View>
-
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Student Name:</Text>
-                  <Text style={styles.infoValue}>
-                    {result.credential_data?.student_name || 'N/A'}
-                  </Text>
-                </View>
-
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Roll Number:</Text>
-                  <Text style={styles.infoValue}>
-                    {result.credential_data?.roll_number || 'N/A'}
-                  </Text>
-                </View>
-
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>SHA-256 Hash:</Text>
-                  <Text style={styles.codeText} selectable>{result.credential_hash}</Text>
-                </View>
-
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Blockchain Tx Hash:</Text>
-                  <Text style={styles.codeText} selectable>
-                    {result.blockchain_tx_hash || 'Not Yet Anchored On-Chain (Pending Sync)'}
-                  </Text>
-                </View>
-
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Issue Date:</Text>
-                  <Text style={styles.infoValue}>
-                    {new Date(result.issued_at).toLocaleString()}
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.notFoundCard}>
-                <Text style={styles.notFoundTitle}>⚠️ Credential Not Found</Text>
-                <Text style={styles.notFoundText}>
-                  No verifiable record matching this Credential ID or SHA-256 Hash was found in the institution registry database.
+                  {result.is_revoked
+                    ? 'Credential Revoked by Issuer'
+                    : result.blockchain_status === 'ANCHORED'
+                    ? 'Authentic & Blockchain Anchored'
+                    : 'Database Record Found (Pending Anchor)'}
                 </Text>
               </View>
-            )}
-          </View>
-        )}
-      </View>
+
+              {/* Detail Rows */}
+              <View style={styles.detailGrid}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Credential ID</Text>
+                  <Text style={styles.detailValCode} selectable>{result.credential_id}</Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Roll Number</Text>
+                  <Text style={styles.detailVal}>{result.credential_data?.roll_number || 'N/A'}</Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Institution</Text>
+                  <Text style={styles.detailVal}>{result.credential_data?.institution || 'Academic Institution'}</Text>
+                </View>
+
+                <View style={styles.detailRowColumn}>
+                  <Text style={styles.detailLabel}>SHA-256 Digest</Text>
+                  <Text style={styles.hashCodeText} selectable numberOfLines={1} ellipsizeMode="middle">
+                    {result.credential_hash}
+                  </Text>
+                </View>
+
+                {Boolean(result.blockchain_tx_hash) && (
+                  <View style={styles.detailRowColumn}>
+                    <Text style={styles.detailLabel}>Transaction Hash</Text>
+                    <Text style={styles.hashCodeText} selectable numberOfLines={1} ellipsizeMode="middle">
+                      {result.blockchain_tx_hash}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {Boolean(result.blockchain_tx_hash) && (
+                <TouchableOpacity style={styles.polygonScanBtn} onPress={handleViewPolygonScan} activeOpacity={0.8}>
+                  <Text style={styles.polygonScanText}>View on PolygonScan</Text>
+                  <ExternalLink size={14} color={Colors.primary} />
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            <View style={styles.notFoundCard}>
+              <AlertTriangle size={32} color={Colors.revoked} style={{ marginBottom: 10 }} />
+              <Text style={styles.notFoundTitle}>Credential Not Found</Text>
+              <Text style={styles.notFoundText}>
+                No verifiable record matching this Credential ID or SHA-256 Hash was found in the institution registry database.
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    flex: 1,
     backgroundColor: Colors.background,
   },
-  card: {
-    backgroundColor: Colors.card,
-    borderRadius: 20,
+  content: {
     padding: 20,
-    borderColor: Colors.cardBorder,
-    borderWidth: 1,
+    paddingBottom: 40,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  backBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.text,
   },
   header: {
     alignItems: 'center',
     marginBottom: 20,
   },
-  icon: {
-    fontSize: 40,
-    marginBottom: 8,
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.verifiedBg,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 9999,
+    marginBottom: 12,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.primary,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 26,
+    fontWeight: '800',
     color: Colors.text,
     textAlign: 'center',
     marginBottom: 6,
@@ -212,111 +256,151 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
   },
+  searchCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 24,
+    padding: 20,
+    borderColor: Colors.cardBorder,
+    borderWidth: 1,
+  },
   errorCard: {
     backgroundColor: Colors.revokedBg,
     borderColor: Colors.revoked,
     borderWidth: 1,
     padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
+    borderRadius: 16,
+    marginBottom: 14,
   },
   errorCardText: {
-    color: Colors.text,
+    color: Colors.revoked,
     fontSize: 13,
+    fontWeight: '600',
   },
   resultBox: {
-    marginTop: 24,
+    marginTop: 20,
   },
   resultCard: {
-    backgroundColor: Colors.inputBg,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: Colors.card,
+    borderRadius: 24,
+    padding: 20,
     borderColor: Colors.cardBorder,
     borderWidth: 1,
   },
-  badgeRow: {
+  resultCardRevoked: {
+    borderColor: 'rgba(255, 107, 107, 0.3)',
+    backgroundColor: 'rgba(255, 107, 107, 0.04)',
+  },
+  cardTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
-  resultTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+  credentialTitle: {
+    fontSize: 18,
+    fontWeight: '800',
     color: Colors.text,
-    flex: 1,
   },
-  validityBanner: {
-    padding: 10,
-    borderRadius: 8,
+  studentName: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  statusBanner: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
     marginBottom: 16,
     borderWidth: 1,
   },
-  pendingBanner: {
-    backgroundColor: Colors.pendingBg,
-    borderColor: Colors.pending,
-  },
-  verifiedBanner: {
+  statusBannerVerified: {
     backgroundColor: Colors.verifiedBg,
     borderColor: Colors.verified,
   },
-  revokedBanner: {
+  statusBannerPending: {
+    backgroundColor: Colors.pendingBg,
+    borderColor: Colors.pending,
+  },
+  statusBannerRevoked: {
     backgroundColor: Colors.revokedBg,
     borderColor: Colors.revoked,
   },
-  validityText: {
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  pendingText: {
-    color: Colors.pending,
-  },
-  verifiedText: {
-    color: Colors.verified,
-  },
-  revokedText: {
-    color: Colors.revoked,
-  },
-  infoRow: {
-    marginBottom: 10,
-  },
-  infoLabel: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    marginBottom: 2,
-  },
-  infoValue: {
+  statusBannerText: {
     fontSize: 13,
-    color: Colors.text,
-    fontWeight: '500',
+    fontWeight: '700',
   },
-  codeText: {
-    fontSize: 11,
-    color: Colors.secondary,
+  detailGrid: {
+    gap: 12,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  detailRowColumn: {
+    gap: 4,
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  detailVal: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  detailValCode: {
+    fontSize: 12,
     fontFamily: 'monospace',
-    backgroundColor: Colors.card,
-    padding: 6,
-    borderRadius: 6,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  hashCodeText: {
+    fontSize: 12,
+    fontFamily: 'monospace',
+    color: Colors.textSecondary,
+    backgroundColor: Colors.cardSecondary,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  polygonScanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.cardBorder,
+  },
+  polygonScanText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.primary,
   },
   notFoundCard: {
-    backgroundColor: Colors.revokedBg,
-    borderColor: Colors.revoked,
+    backgroundColor: Colors.card,
+    borderColor: Colors.cardBorder,
     borderWidth: 1,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 24,
+    padding: 24,
     alignItems: 'center',
   },
   notFoundTitle: {
-    color: Colors.revoked,
+    color: Colors.text,
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 4,
   },
   notFoundText: {
     color: Colors.textMuted,
-    fontSize: 12,
+    fontSize: 13,
     textAlign: 'center',
+    lineHeight: 18,
   },
 });

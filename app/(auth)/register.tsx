@@ -6,6 +6,7 @@ import { CustomButton } from '../../components/CustomButton';
 import { Colors } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types';
+import { ShieldCheck } from 'lucide-react-native';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function RegisterScreen() {
   const [rollNumber, setRollNumber] = useState('');
   const [course, setCourse] = useState('B.Tech Computer Science');
   const [department, setDepartment] = useState('Computer Science & Engineering');
+  const [institution, setInstitution] = useState('Academic Institution');
   const [role, setRole] = useState<UserRole>('student');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -41,6 +43,7 @@ export default function RegisterScreen() {
       rollNumber: rollNumber.trim(),
       course: course.trim(),
       department: department.trim(),
+      institution: institution.trim(),
       role,
     });
 
@@ -54,9 +57,13 @@ export default function RegisterScreen() {
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
-        <Text style={styles.appTitle}>D-SIVC</Text>
+        <View style={styles.identityBadge}>
+          <ShieldCheck size={14} color={Colors.primary} />
+          <Text style={styles.identityBadgeText}>D-SIVC Onboarding</Text>
+        </View>
+
         <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Register your identity on the platform</Text>
+        <Text style={styles.subtitle}>Register your digital student identity</Text>
       </View>
 
       <View style={styles.formCard}>
@@ -66,9 +73,9 @@ export default function RegisterScreen() {
           </View>
         ) : null}
 
-        {/* Role Selector */}
+        {/* Role Pill Selector */}
         <View style={styles.roleContainer}>
-          <Text style={styles.roleLabel}>Account Role:</Text>
+          <Text style={styles.roleLabel}>Account Role</Text>
           <View style={styles.roleButtons}>
             <TouchableOpacity
               style={[styles.roleBtn, role === 'student' && styles.roleBtnActive]}
@@ -131,14 +138,21 @@ export default function RegisterScreen() {
               value={department}
               onChangeText={setDepartment}
             />
+
+            <CustomInput
+              label="Institution"
+              placeholder="e.g. Academic Institution"
+              value={institution}
+              onChangeText={setInstitution}
+            />
           </>
         ) : null}
 
         <CustomButton
-          title="Complete Registration"
+          title="Create Account"
           onPress={handleRegister}
           loading={loading}
-          style={{ marginTop: 16 }}
+          style={{ marginTop: 20 }}
         />
 
         <View style={styles.footerRow}>
@@ -163,16 +177,26 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     alignItems: 'center',
   },
-  appTitle: {
+  identityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.verifiedBg,
+    borderColor: 'rgba(101, 230, 163, 0.2)',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 9999,
+    gap: 6,
+    marginBottom: 12,
+  },
+  identityBadgeText: {
     color: Colors.primary,
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 2,
-    marginBottom: 8,
+    fontSize: 12,
+    fontWeight: '600',
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: Colors.text,
     marginBottom: 4,
   },
@@ -182,8 +206,8 @@ const styles = StyleSheet.create({
   },
   formCard: {
     backgroundColor: Colors.card,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 24,
+    padding: 24,
     borderColor: Colors.cardBorder,
     borderWidth: 1,
   },
@@ -192,7 +216,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.revoked,
     borderWidth: 1,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 16,
   },
   errorCardText: {
@@ -204,14 +228,14 @@ const styles = StyleSheet.create({
   },
   roleLabel: {
     color: Colors.textSecondary,
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
     marginBottom: 8,
   },
   roleButtons: {
     flexDirection: 'row',
     backgroundColor: Colors.inputBg,
-    borderRadius: 12,
+    borderRadius: 9999,
     padding: 4,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
@@ -220,7 +244,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 9999,
   },
   roleBtnActive: {
     backgroundColor: Colors.primary,
@@ -228,10 +252,11 @@ const styles = StyleSheet.create({
   roleBtnText: {
     color: Colors.textMuted,
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
   },
   roleBtnTextActive: {
-    color: Colors.text,
+    color: Colors.primaryText,
+    fontWeight: '700',
   },
   footerRow: {
     flexDirection: 'row',

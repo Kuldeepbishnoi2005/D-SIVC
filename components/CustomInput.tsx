@@ -23,23 +23,24 @@ export const CustomInput: React.FC<CustomInputProps> = ({ label, error, ...props
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 8,
+    marginVertical: 6,
     width: '100%',
   },
   label: {
     color: Colors.textSecondary,
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
     marginBottom: 6,
+    letterSpacing: 0.2,
   },
   input: {
     backgroundColor: Colors.inputBg,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    fontSize: 15,
     color: Colors.text,
   },
   inputError: {

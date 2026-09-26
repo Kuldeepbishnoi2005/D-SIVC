@@ -4,9 +4,10 @@ import { Colors } from '../constants/theme';
 
 interface StatusBadgeProps {
   status: string;
+  showDot?: boolean;
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, showDot = true }) => {
   const normalized = (status || '').toUpperCase();
 
   let bgColor = Colors.pendingBg;
@@ -16,8 +17,12 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   if (normalized === 'VERIFIED' || normalized === 'ANCHORED') {
     bgColor = Colors.verifiedBg;
     textColor = Colors.verified;
-    label = 'VERIFIED';
-  } else if (normalized === 'REVOKED' || normalized === 'FAILED') {
+    label = normalized === 'ANCHORED' ? 'ANCHORED' : 'VERIFIED';
+  } else if (normalized === 'REVOKED') {
+    bgColor = Colors.revokedBg;
+    textColor = Colors.revoked;
+    label = 'REVOKED';
+  } else if (normalized === 'FAILED' || normalized === 'INVALID') {
     bgColor = Colors.revokedBg;
     textColor = Colors.revoked;
     label = normalized;
@@ -28,7 +33,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   }
 
   return (
-    <View style={[styles.badge, { backgroundColor: bgColor, borderColor: textColor }]}>
+    <View style={[styles.badge, { backgroundColor: bgColor }]}>
+      {showDot && <Text style={[styles.dot, { color: textColor }]}>● </Text>}
       <Text style={[styles.text, { color: textColor }]}>{label}</Text>
     </View>
   );
@@ -36,11 +42,16 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
 
 const styles = StyleSheet.create({
   badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 9999,
     alignSelf: 'flex-start',
+  },
+  dot: {
+    fontSize: 8,
+    marginRight: 2,
   },
   text: {
     fontSize: 11,
