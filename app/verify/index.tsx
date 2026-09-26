@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { CustomInput } from '../../components/CustomInput';
 import { CustomButton } from '../../components/CustomButton';
 import { Colors } from '../../constants/theme';
@@ -7,14 +8,17 @@ import { verificationService, VerificationResult } from '../../services/verifica
 import { StatusBadge } from '../../components/StatusBadge';
 
 export default function PublicVerifyScreen() {
-  const [query, setQuery] = useState('');
+  const { credential } = useLocalSearchParams<{ credential?: string }>();
+  const initialCred = typeof credential === 'string' ? credential.trim() : '';
+
+  const [query, setQuery] = useState(initialCred);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [searched, setSearched] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleVerify = async () => {
-    if (!query.trim()) {
+  const executeVerification = useCallback(async (targetQuery: string) => {
+    if (!targetQuery.trim()) {
       setErrorMsg('Please enter a valid Credential ID or SHA-256 Hash.');
       return;
     }
@@ -24,7 +28,7 @@ export default function PublicVerifyScreen() {
     setSearched(false);
 
     try {
-      const res = await verificationService.verifyCredential(query.trim());
+      const res = await verificationService.verifyCredential(targetQuery.trim());
       setResult(res);
       setSearched(true);
     } catch (err: any) {
@@ -32,7 +36,20 @@ export default function PublicVerifyScreen() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const handleVerify = () => {
+    executeVerification(query);
   };
+
+  useEffect(() => {
+    if (initialCred) {
+      const timer = setTimeout(() => {
+        executeVerification(initialCred);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [initialCred, executeVerification]);
 
   const getTruthfulStatusText = (res: VerificationResult) => {
     if (res.is_revoked) {

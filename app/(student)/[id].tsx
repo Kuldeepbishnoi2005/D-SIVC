@@ -1,16 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Share, Modal } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import QRCode from 'react-native-qrcode-svg';
 import { credentialService } from '../../services/credentialService';
 import { Credential } from '../../types';
 import { Colors } from '../../constants/theme';
 import { StatusBadge } from '../../components/StatusBadge';
 import { CustomButton } from '../../components/CustomButton';
 
+const BASE_VERIFIER_URL =
+  process.env.EXPO_PUBLIC_VERIFIER_URL ||
+  (typeof window !== 'undefined' && window.location?.origin ? `${window.location.origin}/verify` : 'dsivc://verify');
+
 export default function StudentCredentialDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [credential, setCredential] = useState<Credential | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showQrModal, setShowQrModal] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -37,14 +43,18 @@ export default function StudentCredentialDetailScreen() {
     };
   }, [id]);
 
+  const displayId = credential ? (credential.credential_id || credential.id) : '';
+  const verifyUrl = `${BASE_VERIFIER_URL}?credential=${encodeURIComponent(displayId)}`;
+
   const handleShareVerification = async () => {
     if (!credential) return;
     try {
       await Share.share({
-        message: `Verify my academic credential (ID: ${credential.id}) on D-SIVC! Hash: ${credential.credential_hash}`,
+        message: `Verify my D-SIVC credential: ${verifyUrl}`,
+        url: verifyUrl,
       });
     } catch (error) {
-      console.error('Error sharing:', error);
+      console.error('Error sharing verification link:', error);
     }
   };
 
@@ -84,7 +94,7 @@ export default function StudentCredentialDetailScreen() {
         </View>
 
         <Text style={styles.idLabel}>Credential ID:</Text>
-        <Text style={styles.idText} selectable>{credential.credential_id || credential.id}</Text>
+        <Text style={styles.idText} selectable>{displayId}</Text>
 
         <View style={styles.divider} />
 
@@ -120,13 +130,61 @@ export default function StudentCredentialDetailScreen() {
           </Text>
         </View>
 
-        <CustomButton
-          title="Share Credential Proof"
-          onPress={handleShareVerification}
-          variant="secondary"
-          style={{ marginTop: 24 }}
-        />
+        {/* Action Buttons */}
+        <View style={styles.buttonRow}>
+          <CustomButton
+            title="Show QR Code"
+            onPress={() => setShowQrModal(true)}
+            style={{ flex: 1, marginRight: 8, marginTop: 24 }}
+          />
+          <CustomButton
+            title="Share Link"
+            onPress={handleShareVerification}
+            variant="secondary"
+            style={{ flex: 1, marginLeft: 8, marginTop: 24 }}
+          />
+        </View>
       </View>
+
+      {/* QR Code Verification Modal */}
+      <Modal
+        visible={showQrModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowQrModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalBrand}>D-SIVC</Text>
+            <Text style={styles.modalTitle}>Credential Verification</Text>
+
+            <View style={styles.qrContainer}>
+              <QRCode
+                value={verifyUrl}
+                size={180}
+                color={Colors.text}
+                backgroundColor="#FFFFFF"
+              />
+            </View>
+
+            <Text style={styles.modalIdLabel}>Credential ID:</Text>
+            <Text style={styles.modalIdText} selectable>{displayId}</Text>
+            <Text style={styles.modalSubtitle}>Scan to verify this credential</Text>
+
+            <CustomButton
+              title="Share Verification Link"
+              onPress={handleShareVerification}
+              variant="secondary"
+              style={{ width: '100%', marginBottom: 10 }}
+            />
+            <CustomButton
+              title="Close"
+              onPress={() => setShowQrModal(false)}
+              style={{ width: '100%' }}
+            />
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -241,5 +299,70 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 12,
     fontFamily: 'monospace',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: Colors.card,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    borderColor: Colors.cardBorder,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  modalBrand: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.primary,
+    letterSpacing: 1.5,
+    marginBottom: 4,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  qrContainer: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  modalIdLabel: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginTop: 4,
+  },
+  modalIdText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.text,
+    fontFamily: 'monospace',
+    marginBottom: 6,
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 20,
   },
 });
