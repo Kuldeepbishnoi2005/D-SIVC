@@ -57,7 +57,7 @@ export default function AdminDashboardScreen() {
     { key: 'dashboard', label: 'Dashboard', iconName: 'dashboard', route: '/(admin)/dashboard' },
     { key: 'students', label: 'Students', iconName: 'students', route: '/(admin)/students' },
     { key: 'credentials', label: 'Credentials', iconName: 'credentials', route: '/(admin)/credentials' },
-    { key: 'profile', label: 'Profile', iconName: 'profile', route: '#admin-profile' },
+    { key: 'profile', label: 'Profile', iconName: 'profile', route: '/(admin)/profile' },
   ];
 
   return (

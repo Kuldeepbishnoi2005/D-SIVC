@@ -31,6 +31,7 @@ export default function AdminLayout() {
       <Stack.Screen name="students" options={{ title: 'Student Directory' }} />
       <Stack.Screen name="issue" options={{ title: 'Issue Credential' }} />
       <Stack.Screen name="credentials" options={{ title: 'Manage Credentials' }} />
+      <Stack.Screen name="profile" options={{ title: 'Admin Profile' }} />
     </Stack>
   );
 }
