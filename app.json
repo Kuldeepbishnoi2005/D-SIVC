@@ -21,7 +21,14 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "D-SIVC",
+      "shortName": "D-SIVC",
+      "themeColor": "#0D0F10",
+      "backgroundColor": "#0D0F10",
+      "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/"
     },
     "plugins": [
       "expo-router",

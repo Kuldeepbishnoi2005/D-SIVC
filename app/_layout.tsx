@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { Colors } from '../constants/theme';
 
@@ -68,6 +68,21 @@ function InitialLayout() {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker
+          .register('/sw.js')
+          .then((registration) => {
+            console.log('D-SIVC PWA Service Worker registered with scope:', registration.scope);
+          })
+          .catch((error) => {
+            console.warn('D-SIVC PWA Service Worker registration failed:', error);
+          });
+      });
+    }
+  }, []);
+
   return (
     <AuthProvider>
       <StatusBar style="light" />
