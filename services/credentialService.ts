@@ -95,6 +95,12 @@ export const credentialService = {
     payload: Record<string, any>
   ): Promise<Credential | null> {
     try {
+      // 0. Pre-check: Verify student has not already received a credential
+      const existingCreds = await this.getStudentCredentials(studentId);
+      if (existingCreds && existingCreds.length > 0) {
+        throw new Error('This student has already been issued a credential. Each student can be issued a credential only once.');
+      }
+
       // 1. Generate unique readable credential_id
       const publicCredentialId = `DSIVC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
@@ -126,7 +132,10 @@ export const credentialService = {
 
       if (error) {
         console.error('Error creating credential in database:', error);
-        return null;
+        if (error.code === '23505') {
+          throw new Error('This student has already been issued a credential.');
+        }
+        throw new Error(error.message || 'Failed to insert credential record in database.');
       }
 
       // 4. Trigger Supabase Edge Function to anchor credential to Polygon Amoy Testnet

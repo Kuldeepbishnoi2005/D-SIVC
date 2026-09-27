@@ -13,6 +13,7 @@ export default function AdminIssueCredentialScreen() {
   const params = useLocalSearchParams<{ studentId?: string }>();
 
   const [students, setStudents] = useState<UserProfile[]>([]);
+  const [issuedStudentIds, setIssuedStudentIds] = useState<Set<string>>(new Set());
   const [selectedStudentId, setSelectedStudentId] = useState<string>(params.studentId || '');
   const [credentialType, setCredentialType] = useState('Bachelor of Technology in Computer Science');
   const [degreeClass, setDegreeClass] = useState('First Class with Distinction');
@@ -23,23 +24,30 @@ export default function AdminIssueCredentialScreen() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  const isAlreadyIssued = Boolean(selectedStudentId && issuedStudentIds.has(selectedStudentId));
+
   useEffect(() => {
     let isMounted = true;
-    async function fetchStudents() {
+    async function fetchData() {
       try {
-        const data = await credentialService.getAllStudents();
+        const [studentData, credData] = await Promise.all([
+          credentialService.getAllStudents(),
+          credentialService.getAllCredentials(),
+        ]);
         if (isMounted) {
-          setStudents(data);
-          if (!params.studentId && data.length > 0) {
-            setSelectedStudentId(data[0].id);
+          setStudents(studentData);
+          const issuedSet = new Set(credData.map((c) => c.student_id));
+          setIssuedStudentIds(issuedSet);
+          if (!params.studentId && studentData.length > 0) {
+            setSelectedStudentId(studentData[0].id);
           }
         }
       } catch (err) {
-        console.error('Error fetching students for dropdown:', err);
+        console.error('Error fetching data for issue screen:', err);
       }
     }
 
-    fetchStudents();
+    fetchData();
 
     return () => {
       isMounted = false;
@@ -49,6 +57,10 @@ export default function AdminIssueCredentialScreen() {
   const handleIssueCredential = async () => {
     if (!selectedStudentId) {
       setErrorMsg('Please select a student to issue the credential to.');
+      return;
+    }
+    if (isAlreadyIssued) {
+      setErrorMsg('This student has already received a credential. Each student can only be issued one credential.');
       return;
     }
     if (!credentialType) {
@@ -142,20 +154,33 @@ export default function AdminIssueCredentialScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.studentChipScroll}>
             {students.map((student) => {
               const isSelected = student.id === selectedStudentId;
+              const hasCred = issuedStudentIds.has(student.id);
               return (
                 <TouchableOpacity
                   key={student.id}
-                  style={[styles.studentChip, isSelected && styles.studentChipSelected]}
+                  style={[
+                    styles.studentChip,
+                    isSelected && styles.studentChipSelected,
+                    hasCred && !isSelected && { opacity: 0.6 },
+                  ]}
                   onPress={() => setSelectedStudentId(student.id)}
                   activeOpacity={0.7}
                 >
                   <Text style={[styles.studentChipText, isSelected && styles.studentChipTextSelected]}>
-                    {student.full_name} ({student.roll_number || 'No Roll'})
+                    {student.full_name} ({student.roll_number || 'No Roll'}) {hasCred ? '✓ Issued' : ''}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
+        )}
+
+        {isAlreadyIssued && (
+          <View style={styles.alreadyIssuedCard}>
+            <Text style={styles.alreadyIssuedText}>
+              ⚠️ Credential Already Issued: This student has already received a verified digital credential. Re-issuance is disabled.
+            </Text>
+          </View>
         )}
 
         <CustomInput
@@ -193,9 +218,10 @@ export default function AdminIssueCredentialScreen() {
         </View>
 
         <CustomButton
-          title="Sign & Issue Credential"
+          title={isAlreadyIssued ? 'Credential Already Issued' : 'Sign & Issue Credential'}
           onPress={handleIssueCredential}
           loading={loading}
+          disabled={isAlreadyIssued}
           style={{ marginTop: 12 }}
         />
       </View>
@@ -311,5 +337,19 @@ const styles = StyleSheet.create({
   },
   flex1: {
     flex: 1,
+  },
+  alreadyIssuedCard: {
+    backgroundColor: 'rgba(234, 179, 8, 0.12)',
+    borderColor: 'rgba(234, 179, 8, 0.4)',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  alreadyIssuedText: {
+    color: '#EAB308',
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
   },
 });

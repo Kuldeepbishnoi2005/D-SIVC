@@ -49,10 +49,17 @@ export default function StudentDashboardScreen() {
   const anchoredCount = credentials.filter(c => c.blockchain_status === 'ANCHORED').length;
   const revokedCount = credentials.filter(c => c.blockchain_status === 'REVOKED').length;
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning,';
+    if (hour < 18) return 'Good afternoon,';
+    return 'Good evening,';
+  };
+
   const navItems: NavItem[] = [
     { key: 'home', label: 'Home', iconName: 'home', route: '/(student)/dashboard' },
     { key: 'credentials', label: 'Credentials', iconName: 'credentials', route: '/(student)/credentials' },
-    { key: 'profile', label: 'Profile', iconName: 'profile', route: '#profile' },
+    { key: 'profile', label: 'Profile', iconName: 'profile', route: '/(student)/profile' },
   ];
 
   return (
@@ -65,7 +72,7 @@ export default function StudentDashboardScreen() {
         {/* Top Greeting & Verification Badge */}
         <View style={styles.topBar}>
           <View>
-            <Text style={styles.greetingSub}>Good morning,</Text>
+            <Text style={styles.greetingSub}>{getGreeting()}</Text>
             <Text style={styles.greetingName}>{profile?.full_name || 'Student'}</Text>
           </View>
           

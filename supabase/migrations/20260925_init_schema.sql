@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 CREATE TABLE IF NOT EXISTS public.credentials (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   credential_id TEXT UNIQUE NOT NULL,
-  student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  student_id UUID UNIQUE NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   credential_type TEXT DEFAULT 'Digital Student Identity',
   credential_data JSONB NOT NULL,
   credential_hash TEXT NOT NULL,

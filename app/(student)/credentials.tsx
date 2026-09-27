@@ -46,7 +46,7 @@ export default function StudentCredentialsScreen() {
   const navItems: NavItem[] = [
     { key: 'home', label: 'Home', iconName: 'home', route: '/(student)/dashboard' },
     { key: 'credentials', label: 'Credentials', iconName: 'credentials', route: '/(student)/credentials' },
-    { key: 'profile', label: 'Profile', iconName: 'profile', route: '/(student)/dashboard' },
+    { key: 'profile', label: 'Profile', iconName: 'profile', route: '/(student)/profile' },
   ];
 
   const renderItem = ({ item }: { item: Credential }) => (

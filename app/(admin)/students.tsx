@@ -6,19 +6,25 @@ import { UserProfile } from '../../types';
 import { Colors } from '../../constants/theme';
 import { CustomInput } from '../../components/CustomInput';
 import { FloatingNavBar, NavItem } from '../../components/FloatingNavBar';
-import { Users, Plus } from 'lucide-react-native';
+import { Users, Plus, CheckCircle2 } from 'lucide-react-native';
 
 export default function AdminStudentsScreen() {
   const router = useRouter();
   const [students, setStudents] = useState<UserProfile[]>([]);
+  const [issuedStudentIds, setIssuedStudentIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const loadStudents = async () => {
+  const loadData = async () => {
     try {
-      const data = await credentialService.getAllStudents();
-      setStudents(data);
+      const [studentData, credData] = await Promise.all([
+        credentialService.getAllStudents(),
+        credentialService.getAllCredentials(),
+      ]);
+      setStudents(studentData);
+      const issuedSet = new Set(credData.map((c) => c.student_id));
+      setIssuedStudentIds(issuedSet);
     } catch (err) {
       console.error('Error loading student directory:', err);
     } finally {
@@ -29,13 +35,13 @@ export default function AdminStudentsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadStudents();
+      loadData();
     }, [])
   );
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadStudents();
+    loadData();
   };
 
   const filteredStudents = useMemo(() => {
@@ -57,28 +63,39 @@ export default function AdminStudentsScreen() {
     { key: 'profile', label: 'Profile', iconName: 'profile', route: '/(admin)/profile' },
   ];
 
-  const renderItem = ({ item }: { item: UserProfile }) => (
-    <View style={styles.card}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{item.full_name?.charAt(0) || 'S'}</Text>
-      </View>
+  const renderItem = ({ item }: { item: UserProfile }) => {
+    const isIssued = issuedStudentIds.has(item.id);
 
-      <View style={styles.infoBox}>
-        <Text style={styles.name}>{item.full_name}</Text>
-        <Text style={styles.rollText}>Roll: {item.roll_number || 'Unassigned'}</Text>
-        <Text style={styles.detailsText}>{item.course || item.department || 'Student'}</Text>
-      </View>
+    return (
+      <View style={styles.card}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{item.full_name?.charAt(0) || 'S'}</Text>
+        </View>
 
-      <TouchableOpacity
-        style={styles.issueBtn}
-        onPress={() => router.push({ pathname: '/(admin)/issue', params: { studentId: item.id } })}
-        activeOpacity={0.8}
-      >
-        <Plus size={14} color={Colors.primaryText} />
-        <Text style={styles.issueBtnText}>Issue</Text>
-      </TouchableOpacity>
-    </View>
-  );
+        <View style={styles.infoBox}>
+          <Text style={styles.name}>{item.full_name}</Text>
+          <Text style={styles.rollText}>Roll: {item.roll_number || 'Unassigned'}</Text>
+          <Text style={styles.detailsText}>{item.course || item.department || 'Student'}</Text>
+        </View>
+
+        {isIssued ? (
+          <View style={styles.issuedBadge}>
+            <CheckCircle2 size={13} color={Colors.primary} />
+            <Text style={styles.issuedBadgeText}>Issued</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.issueBtn}
+            onPress={() => router.push({ pathname: '/(admin)/issue', params: { studentId: item.id } })}
+            activeOpacity={0.8}
+          >
+            <Plus size={14} color={Colors.primaryText} />
+            <Text style={styles.issueBtnText}>Issue</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -200,6 +217,22 @@ const styles = StyleSheet.create({
   },
   issueBtnText: {
     color: Colors.primaryText,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  issuedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 9999,
+  },
+  issuedBadgeText: {
+    color: Colors.primary,
     fontSize: 12,
     fontWeight: '700',
   },

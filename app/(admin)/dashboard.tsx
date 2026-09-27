@@ -60,6 +60,15 @@ export default function AdminDashboardScreen() {
     { key: 'profile', label: 'Profile', iconName: 'profile', route: '/(admin)/profile' },
   ];
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning,';
+    if (hour < 18) return 'Good afternoon,';
+    return 'Good evening,';
+  };
+
+  const adminName = profile?.full_name || 'Admin';
+
   return (
     <View style={styles.mainWrapper}>
       <ScrollView
@@ -70,8 +79,8 @@ export default function AdminDashboardScreen() {
         {/* Top Header Greeting */}
         <View style={styles.topHeader}>
           <View>
-            <Text style={styles.greetingSub}>Good morning,</Text>
-            <Text style={styles.greetingName}>Admin</Text>
+            <Text style={styles.greetingSub}>{getGreeting()}</Text>
+            <Text style={styles.greetingName}>{adminName}</Text>
           </View>
 
           <View style={styles.adminRolePill}>

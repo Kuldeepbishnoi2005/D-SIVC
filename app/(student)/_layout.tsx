@@ -30,6 +30,7 @@ export default function StudentLayout() {
       <Stack.Screen name="dashboard" options={{ title: 'Student Portal' }} />
       <Stack.Screen name="credentials" options={{ title: 'My Credentials' }} />
       <Stack.Screen name="[id]" options={{ title: 'Credential Details' }} />
+      <Stack.Screen name="profile" options={{ title: 'Student Profile' }} />
     </Stack>
   );
 }

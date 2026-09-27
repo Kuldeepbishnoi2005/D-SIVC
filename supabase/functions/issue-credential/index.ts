@@ -119,6 +119,22 @@ serve(async (req) => {
       );
     }
 
+    // Verify no other active credential exists for this student
+    const { data: existingStudentCreds } = await adminClient
+      .from("credentials")
+      .select("id, credential_id, blockchain_status")
+      .eq("student_id", credential.student_id)
+      .neq("id", credential.id);
+
+    if (existingStudentCreds && existingStudentCreds.length > 0) {
+      return new Response(
+        JSON.stringify({
+          error: "Duplicate issuance rejected: Student already has an issued credential.",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // 6. Validate SHA-256 Hash Format
     let hashHex = credential.credential_hash.trim();
     if (!hashHex.startsWith("0x")) {
